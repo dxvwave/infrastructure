@@ -1,0 +1,49 @@
+services:
+  product-service:
+    build: ../product-service
+    command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      # Mount the local product-service code for development
+      - ../product-service:/app   # Mount source code
+      - /app/.venv                # Persist virtual environment
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${PRODUCT_SERVICE_DATABASE_URL}
+    depends_on:
+      - product-db
+    networks:
+      - backend_network
+
+  product-db:
+    image: postgres:latest
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${PRODUCT_SERVICE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${PRODUCT_SERVICE_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${PRODUCT_SERVICE_POSTGRES_DB}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - product-db-data:/var/lib/postgresql
+    networks:
+      - backend_network
+
+  api-gateway:
+    build: ./gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - product-service
+    networks:
+      - gateway_network
+      - backend_network
+    restart: always
+
+volumes:
+  product-db-data:
+    driver: local
+
+networks:
+  gateway_network:  # Nginx gateway network
+  backend_network:  # Microservices network
