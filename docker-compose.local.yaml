@@ -1,7 +1,7 @@
 services:
   product-service:
     build: ../product-service
-    command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8001 --reload
     volumes:
       # Mount the local product-service code for development
       - ../product-service:/app   # Mount source code
@@ -10,8 +10,40 @@ services:
       - .env
     environment:
       - DATABASE_URL=${PRODUCT_SERVICE_DATABASE_URL}
+      - AUTH_GRPC_CLIENT_HOST=${AUTH_GRPC_CLIENT_HOST}
+      - AUTH_GRPC_CLIENT_PORT=${AUTH_GRPC_CLIENT_PORT}
     depends_on:
       - product-db
+    networks:
+      - backend_network
+
+  auth-service:
+    build: ../auth-service
+    command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      # Mount the local auth-service code for development
+      - ../auth-service:/app   # Mount source code
+      - /app/.venv                # Persist virtual environment
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${AUTH_SERVICE_DATABASE_URL}
+    depends_on:
+      - auth-db
+    networks:
+      - backend_network
+
+  auth-db:
+    image: postgres:latest
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${AUTH_SERVICE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${AUTH_SERVICE_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${AUTH_SERVICE_POSTGRES_DB}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - auth-db-data:/var/lib/postgresql
     networks:
       - backend_network
 
@@ -35,6 +67,7 @@ services:
       - "80:80"
     depends_on:
       - product-service
+      - auth-service
     networks:
       - gateway_network
       - backend_network
@@ -42,6 +75,8 @@ services:
 
 volumes:
   product-db-data:
+    driver: local
+  auth-db-data:
     driver: local
 
 networks:
