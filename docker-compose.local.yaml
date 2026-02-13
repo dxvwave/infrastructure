@@ -12,8 +12,10 @@ services:
       - DATABASE_URL=${PRODUCT_SERVICE_DATABASE_URL}
       - AUTH_GRPC_CLIENT_HOST=${AUTH_GRPC_CLIENT_HOST}
       - AUTH_GRPC_CLIENT_PORT=${AUTH_GRPC_CLIENT_PORT}
+      - RABBITMQ_URL=${RABBITMQ_URL}
     depends_on:
       - product-db
+      - rabbitmq
     networks:
       - backend_network
 
@@ -30,6 +32,7 @@ services:
       - DATABASE_URL=${AUTH_SERVICE_DATABASE_URL}
     depends_on:
       - auth-db
+      - rabbitmq
     networks:
       - backend_network
 
@@ -70,6 +73,24 @@ services:
       - auth-service
     networks:
       - gateway_network
+      - backend_network
+    restart: always
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/mnesia/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq/
+    networks:
       - backend_network
     restart: always
 
