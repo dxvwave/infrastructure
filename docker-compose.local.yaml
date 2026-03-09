@@ -19,6 +19,25 @@ services:
     networks:
       - backend_network
 
+  notification-service:
+    build: ../notification-service
+    command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8002 --reload
+    volumes:
+      - ../notification-service:/app
+      - /app/.venv
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${NOTIFICATION_SERVICE_DATABASE_URL}
+      - AUTH_GRPC_CLIENT_HOST=${AUTH_GRPC_CLIENT_HOST}
+      - AUTH_GRPC_CLIENT_PORT=${AUTH_GRPC_CLIENT_PORT}
+      - RABBITMQ_URL=${RABBITMQ_URL}
+    depends_on:
+      - notification-db
+      - rabbitmq
+    networks:
+      - backend_network
+
   auth-service:
     build: ../auth-service
     command: uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
@@ -74,7 +93,7 @@ services:
       - POSTGRES_DB=${NOTIFICATION_SERVICE_POSTGRES_DB}
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
-      - product-db-data:/var/lib/postgresql
+      - notification-db-data:/var/lib/postgresql
     ports:
       - "5432:5432"
     networks:
@@ -87,6 +106,7 @@ services:
     depends_on:
       - product-service
       - auth-service
+      - notification-service
     networks:
       - gateway_network
       - backend_network
@@ -114,6 +134,8 @@ volumes:
   product-db-data:
     driver: local
   auth-db-data:
+    driver: local
+  notification-db-data:
     driver: local
 
 networks:
