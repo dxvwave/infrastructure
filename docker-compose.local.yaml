@@ -64,6 +64,22 @@ services:
     networks:
       - backend_network
 
+  notification-db:
+    image: postgres:latest
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${NOTIFICATION_SERVICE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${NOTIFICATION_SERVICE_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${NOTIFICATION_SERVICE_POSTGRES_DB}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - product-db-data:/var/lib/postgresql
+    ports:
+      - "5432:5432"
+    networks:
+      - backend_network
+
   api-gateway:
     build: ./gateway
     ports:
