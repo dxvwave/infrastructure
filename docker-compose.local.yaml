@@ -112,6 +112,15 @@ services:
       - backend_network
     restart: always
 
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    volumes:
+      - ./docs/swagger-initializer.js:/usr/share/nginx/html/swagger-initializer.js:ro
+    ports:
+      - "8080:8080"
+    networks:
+      - backend_network
+
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: rabbitmq
